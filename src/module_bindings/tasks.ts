@@ -9,23 +9,23 @@ export class Tasks extends DatabaseTable
 	public static db: ClientDB = __SPACETIMEDB__.clientDB;
 	public static tableName = "Tasks";
 	public id: number;
-	public guestId: number;
+	public identity: Identity;
 	public name: string;
 	public completed: boolean;
 
 	public static primaryKey: string | undefined = "id";
 
-	constructor(id: number, guestId: number, name: string, completed: boolean) {
+	constructor(id: number, identity: Identity, name: string, completed: boolean) {
 	super();
 		this.id = id;
-		this.guestId = guestId;
+		this.identity = identity;
 		this.name = name;
 		this.completed = completed;
 	}
 
 	public static serialize(value: Tasks): object {
 		return [
-		value.id, value.guestId, value.name, value.completed
+		value.id, Array.from(value.identity.toUint8Array()), value.name, value.completed
 		];
 	}
 
@@ -33,7 +33,9 @@ export class Tasks extends DatabaseTable
 	{
 		return AlgebraicType.createProductType([
 			new ProductTypeElement("id", AlgebraicType.createPrimitiveType(BuiltinType.Type.U32)),
-			new ProductTypeElement("guestId", AlgebraicType.createPrimitiveType(BuiltinType.Type.U32)),
+			new ProductTypeElement("identity", AlgebraicType.createProductType([
+			new ProductTypeElement("__identity_bytes", AlgebraicType.createArrayType(AlgebraicType.createPrimitiveType(BuiltinType.Type.U8))),
+		])),
 			new ProductTypeElement("name", AlgebraicType.createPrimitiveType(BuiltinType.Type.String)),
 			new ProductTypeElement("completed", AlgebraicType.createPrimitiveType(BuiltinType.Type.Bool)),
 		]);
@@ -43,10 +45,10 @@ export class Tasks extends DatabaseTable
 	{
 		let productValue = value.asProductValue();
 		let __Id = productValue.elements[0].asNumber();
-		let __GuestId = productValue.elements[1].asNumber();
+		let __Identity = new Identity(productValue.elements[1].asProductValue().elements[0].asBytes());
 		let __Name = productValue.elements[2].asString();
 		let __Completed = productValue.elements[3].asBoolean();
-		return new this(__Id, __GuestId, __Name, __Completed);
+		return new this(__Id, __Identity, __Name, __Completed);
 	}
 
 	public static *filterById(value: number): IterableIterator<Tasks>
@@ -64,11 +66,11 @@ export class Tasks extends DatabaseTable
 		return this.filterById(value).next().value;
 	}
 
-	public static *filterByGuestId(value: number): IterableIterator<Tasks>
+	public static *filterByIdentity(value: Identity): IterableIterator<Tasks>
 	{
 		for (let instance of this.db.getTable("Tasks").getInstances())
 		{
-			if (instance.guestId === value) {
+			if (instance.identity.isEqual(value)) {
 				yield instance;
 			}
 		}

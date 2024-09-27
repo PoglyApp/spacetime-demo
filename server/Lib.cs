@@ -1,4 +1,4 @@
-using SpacetimeDB.Module;
+using SpacetimeDB;
 using static SpacetimeDB.Runtime;
 
 static partial class Module
@@ -10,7 +10,7 @@ static partial class Module
         [SpacetimeDB.Column(ColumnAttrs.PrimaryKeyAuto)]
         public uint Id;
 
-        public uint GuestId;
+        public Identity Identity;
         public string Name;
         public bool Completed;
     }
@@ -18,10 +18,7 @@ static partial class Module
     [SpacetimeDB.Table(Public = true)]
     public partial struct Guest
     {
-        [SpacetimeDB.Column(ColumnAttrs.PrimaryKeyAuto)]
-        public uint Id;
-
-        [SpacetimeDB.Column(ColumnAttrs.Unique)]
+        [SpacetimeDB.Column(ColumnAttrs.PrimaryKey)]
         public Identity Identity;
     }
     #endregion
@@ -47,6 +44,23 @@ static partial class Module
             Log("Woops we had an issue! " + e.Message);
         }
     }
+
+    [SpacetimeDB.Reducer(ReducerKind.Disconnect)]
+    public static void OnDisconnect(ReducerContext ctx)
+    {
+        try
+        {
+            var guest = Guest.FindByIdentity(ctx.Sender);
+            if (guest is not null)
+            {
+                Guest.DeleteByIdentity(ctx.Sender);
+            }
+        }
+        catch (Exception e)
+        {
+            Log("Had some issue deleting guest!");
+        }
+    }
     #endregion
 
     #region Reducers
@@ -65,7 +79,7 @@ static partial class Module
             
             new Tasks
             {
-                GuestId = guest.Value.Id,
+                Identity = guest.Value.Identity,
                 Name = task,
                 Completed = false
             }.Insert();
@@ -95,7 +109,7 @@ static partial class Module
                 return;
             }
 
-            if (guest.Value.Id != task.Value.GuestId)
+            if (guest.Value.Identity != task.Value.Identity)
             {
                 Log("Guest tried to complete someone elses task!");
                 return;
@@ -125,7 +139,7 @@ static partial class Module
 
             foreach (var t in Tasks.Iter())
             {
-                if (t.GuestId == guest.Value.Id)
+                if (t.Identity == guest.Value.Identity)
                 {
                     Tasks.DeleteById(t.Id);
                 }

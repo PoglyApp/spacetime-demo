@@ -6,25 +6,23 @@ import ClearAllTasksReducer from "../module_bindings/clear_all_tasks_reducer";
 import { useEffect, useState } from "react";
 import CompleteTaskReducer from "../module_bindings/complete_task_reducer";
 
-const useStDb = (setStdbInitialized: Function) => {
-    const [stdbClient, setStdbClient] = useState<SpacetimeDBClient>();
-
+const useStDb = (setStdbInitialized: Function, setClient: Function, setIdentity: Function, reconnect: string) => {
     useEffect(() => {
-
         SpacetimeDBClient.registerTables(Guest, Tasks);
         SpacetimeDBClient.registerReducers(AddTaskReducer, CompleteTaskReducer, ClearAllTasksReducer);
     
         const token = localStorage.getItem("stdbToken-example") || undefined;
         const client = new SpacetimeDBClient(
             "wss://testnet.spacetimedb.com",
-            "5492dd8b2d66d9357158a1764c7ed4ba",
+            "Test-Checklist",
             token
         );
     
         client.onConnect((token: string, Identity: Identity) => {
             console.log("Connected to StDB! [" + Identity.toHexString() + "]");
             localStorage.setItem("stdbToken-example", token);
-            setStdbClient(client);
+            setClient(client);
+            setIdentity(Identity);
             client.subscribe([
                 "SELECT * FROM Guest",
                 "SELECT * FROM Tasks"
@@ -37,12 +35,10 @@ const useStDb = (setStdbInitialized: Function) => {
     
         client.onError((...args: any[]) => {
             console.log("ERROR", args);
-          });
+        });
     
         client.connect();
-    }, []);
-
-    return stdbClient;
+    }, [reconnect]);
 };
 
 export default useStDb;

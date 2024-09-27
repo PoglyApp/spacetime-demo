@@ -8,27 +8,24 @@ export class Guest extends DatabaseTable
 {
 	public static db: ClientDB = __SPACETIMEDB__.clientDB;
 	public static tableName = "Guest";
-	public id: number;
 	public identity: Identity;
 
-	public static primaryKey: string | undefined = "id";
+	public static primaryKey: string | undefined = "identity";
 
-	constructor(id: number, identity: Identity) {
+	constructor(identity: Identity) {
 	super();
-		this.id = id;
 		this.identity = identity;
 	}
 
 	public static serialize(value: Guest): object {
 		return [
-		value.id, Array.from(value.identity.toUint8Array())
+		Array.from(value.identity.toUint8Array())
 		];
 	}
 
 	public static getAlgebraicType(): AlgebraicType
 	{
 		return AlgebraicType.createProductType([
-			new ProductTypeElement("id", AlgebraicType.createPrimitiveType(BuiltinType.Type.U32)),
 			new ProductTypeElement("identity", AlgebraicType.createProductType([
 			new ProductTypeElement("__identity_bytes", AlgebraicType.createArrayType(AlgebraicType.createPrimitiveType(BuiltinType.Type.U8))),
 		])),
@@ -38,24 +35,8 @@ export class Guest extends DatabaseTable
 	public static fromValue(value: AlgebraicValue): Guest
 	{
 		let productValue = value.asProductValue();
-		let __Id = productValue.elements[0].asNumber();
-		let __Identity = new Identity(productValue.elements[1].asProductValue().elements[0].asBytes());
-		return new this(__Id, __Identity);
-	}
-
-	public static *filterById(value: number): IterableIterator<Guest>
-	{
-		for (let instance of this.db.getTable("Guest").getInstances())
-		{
-			if (instance.id === value) {
-				yield instance;
-			}
-		}
-	}
-
-	public static findById(value: number): Guest | undefined
-	{
-		return this.filterById(value).next().value;
+		let __Identity = new Identity(productValue.elements[0].asProductValue().elements[0].asBytes());
+		return new this(__Identity);
 	}
 
 	public static *filterByIdentity(value: Identity): IterableIterator<Guest>
