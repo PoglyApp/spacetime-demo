@@ -25,7 +25,7 @@ function App() {
 
   useEffect(() => {
     setTasks(Tasks.all());
-  },[client?.db.tables.entries()])
+  },[client?.db.getTable("Tasks").instances.entries()])
 
   const handleComplete = (e: any) => {
     CompleteTaskReducer.call(e.target.value);
